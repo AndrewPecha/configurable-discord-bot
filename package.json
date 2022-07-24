@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/AndrewPecha/configurable-discord-bot#readme",
   "dependencies": {
-    "discord.js": "^14.0.3"
+    "discord.js": "^14.0.3",
+    "jsonfile": "^6.1.0"
   }
 }
