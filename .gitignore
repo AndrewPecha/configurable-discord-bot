@@ -4,3 +4,4 @@ invite-link.txt
 /node_modules
 bad-words.json
 forbidden-words.json
+/.vs
