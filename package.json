@@ -2,7 +2,7 @@
   "name": "configurable-discord-bot",
   "version": "1.0.0",
   "description": "Will showcase how to make a very basic discord bot with settings that can be configured by the admin of the server it is in.",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/AndrewPecha/configurable-discord-bot/issues"
   },
-  "homepage": "https://github.com/AndrewPecha/configurable-discord-bot#readme"
+  "homepage": "https://github.com/AndrewPecha/configurable-discord-bot#readme",
+  "dependencies": {
+    "discord.js": "^14.0.3"
+  }
 }

@@ -1,3 +1,4 @@
 /.idea
-src/env.json
+src/auth.json
 invite-link.txt
+/node_modules
