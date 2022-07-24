@@ -69,7 +69,8 @@ bot.on("messageCreate", async function (message) {
     let serverId = message.guildId;
 
     //TODO add check to ensure person doing command is an admin
-    if (message.content.charAt(0) === '!') {
+
+    if (message.member.roles.cache.some(r => r.name === 'Admin') && message.content.charAt(0) === '!') {
         let messageWords = message.content.slice(1).split(' ');
 
         if (messageWords[0].toLowerCase() === "add-forbidden-word") {
@@ -87,7 +88,6 @@ bot.on("messageCreate", async function (message) {
         }
     }
 
-    //TODO split message content on ' ' (space), and remove message if one of the words is a forbidden word based on server id
     else {
         //don't try to filter messages sent by a bot
         if (message.author.bot)
