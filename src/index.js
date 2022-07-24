@@ -4,12 +4,12 @@ const fs = require('fs');
 const jsonfile = require('jsonfile')
 
 let bot = new Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]});
-let configFileName = 'bad-words.json';
+let configFileName = 'forbidden-words.json';
 
-function CreateBadWordsFileIfNotExists() {
+function CreateForbiddenWordsFileIfNotExists() {
     fs.stat(configFileName, function (err, stat) {
         if (err == null) {
-            console.log('bad word file exists');
+            console.log(`${configFileName} exists`);
         } else if (err.code === 'ENOENT') {
             // file does not exist
             fs.writeFile(configFileName, "[]", function () {
@@ -24,54 +24,62 @@ bot.on("ready", function () {
     console.log("Connected");
     console.log("Logged in as: ");
     console.log(bot.user.username + " - (" + bot.user.id + ")");
-    CreateBadWordsFileIfNotExists();
+    CreateForbiddenWordsFileIfNotExists();
     console.log("I'm ready!")
 });
 
-function GetServerIndex(obj, serverId) {
+function GetOrCreateServerIndex(obj, serverId) {
     for (let i = 0; i < obj.length; i++) {
-        if(obj[i].hasOwnProperty("ServerId") && obj[i].ServerId === serverId){
+        if (obj[i].hasOwnProperty("ServerId") && obj[i].ServerId === serverId) {
             return i;
         }
     }
 
-    return -1;
+    return AddNewServerToConfig(obj, serverId);
 }
 
 function AddNewServerToConfig(obj, serverId) {
-    obj.push({ "ServerId": serverId, "ForbiddenWords": [] })
+    obj.push({"ServerId": serverId, "ForbiddenWords": []})
     return obj.length - 1;
 }
 
-function AddForbiddenWord(obj, forbiddenWordToAdd, indexOfServer) {
+function AddForbiddenWord(obj, forbiddenWordToAdd, serverId) {
+    let indexOfServer = GetOrCreateServerIndex(obj, serverId);
+
     //TODO check if word already exists before adding
-    if(obj[indexOfServer].hasOwnProperty("ForbiddenWords")){
-        obj[indexOfServer].ForbiddenWords.push(forbiddenWordToAdd);
-    }
+    obj[indexOfServer].ForbiddenWords.push(forbiddenWordToAdd);
 }
 
-bot.on("messageCreate", function (message) {
+async function GetForbiddenWords(serverId) {
+    let result;
+    await jsonfile.readFile(configFileName)
+        .then(obj => {
+            let indexOfServer = GetOrCreateServerIndex(obj, serverId);
+            result = obj[indexOfServer].ForbiddenWords;
+        })
+        .catch(error => {
+            console.error(error)
+        })
+    return result;
+}
+
+bot.on("messageCreate", async function (message) {
     console.log(message.content);
 
     let serverId = message.guildId;
 
-    if(message.content.charAt(0) === '!'){
+    //TODO add check to ensure person doing command is an admin
+    if (message.content.charAt(0) === '!') {
         let messageWords = message.content.slice(1).split(' ');
 
-        if(messageWords[0].toLowerCase() === "add-forbidden-word") {
+        if (messageWords[0].toLowerCase() === "add-forbidden-word") {
             console.log("adding bad word")
 
             let forbiddenWordToAdd = messageWords[1];
 
             jsonfile.readFile(configFileName)
                 .then(obj => {
-
-                    let serverWordsIndex = GetServerIndex(obj, serverId);
-                    if(serverWordsIndex === -1){
-                        serverWordsIndex = AddNewServerToConfig(obj, serverId);
-                    }
-
-                    AddForbiddenWord(obj, forbiddenWordToAdd, serverWordsIndex);
+                    AddForbiddenWord(obj, forbiddenWordToAdd, serverId);
 
                     jsonfile.writeFile(configFileName, obj);
                 })
@@ -79,8 +87,23 @@ bot.on("messageCreate", function (message) {
         }
     }
 
-    //TODO add else and check for bad words based on server id
-    //TODO split message content on ' ' (space), and remove if one of the words is a forbidden word
+    //TODO split message content on ' ' (space), and remove message if one of the words is a forbidden word based on server id
+    else {
+        //don't try to filter messages sent by a bot
+        if (message.author.bot)
+            return;
+
+        let messageWords = message.content.split(' ');
+        let forbiddenWords = await GetForbiddenWords(serverId);
+
+        for (let i = 0; i < messageWords.length; i++) {
+            if (forbiddenWords.includes(messageWords[i])) {
+                message.delete().then(msg => bot.channels.cache.get(msg.channelId).send(`<@${msg.author.id}> YOU SAID A NAUGHTY!!`));
+            }
+        }
+    }
+
+    //TODO add command to remove forbidden word from list based on server id
 });
 
 bot
